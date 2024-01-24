@@ -1,0 +1,148 @@
+---
+title: "2017 Nonprofit Overview"
+author: "Catherine Brockway"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    df_print: paged
+---
+
+This is an analysis of a [dataset](https://data.world/irs/exempt-organizations-business-master-file-hi/workspace/project-summary?agentid=irs&datasetid=exempt-organizations-business-master-file-hi) with some basic information about nonprofit, tax-exempt organizations in Hawaiʻi as of 2017.  We will summarize, subset, analyze, and visualize the data in this session. 
+
+The first thing we need to do is to set up our R environment with everything we will need to conduct our analysis. We will install, using *install.packages* and load, using *library*, all the [packages](https://en.wikipedia.org/wiki/R_package) we need in the code chunk below. It may take some time to install the packages, but in the future, you will already have them installed and will only need to load them. 
+
+Click the green arrow on the top, right-hand corner of the code chunk below to run all the code in the code chunk. 
+```{r install packages, eval=FALSE, include=FALSE}
+install.packages("here")
+install.packages("tidyverse")
+install.packages("plotly")
+install.packages("reactable")
+install.packages("scales")
+```
+
+```{r load packages}
+library(here)
+
+library(plotly)
+library(reactable)
+library(scales)
+library(tidyverse)
+
+here()
+```
+The next thing we need to do is to import the [.csv](https://en.wikipedia.org/wiki/Comma-separated_values) file we are analyzing. We know it is a .csv because that is the file extension at the end of the file name. The *read.csv* function imports the data and converts it into a [dataframe](https://www.stat.berkeley.edu/users/nolan/IntroRPgm/chap-DataFrame.html), which is the most common data format used in R. 
+
+With this line of code, we are also giving this dataframe a name: "fulldata". That is what we will call the dataframe for the rest of the session. 
+```{r import data}
+fulldata <- read.csv(here("hawaii_nonprofits_overview.csv"))
+
+```
+
+To see what the dataframe looks like, you can find the object named "fulldata" in your Environment frame and on the name once. This should open a new tab with the dataframe in spreadsheet format. 
+
+Next, we want to get an overall picture of what our data looks like. We will use the *summary* function.
+
+When you run this code, your output below the code chunk should show a list of all of the variables with some information about each variable. 
+
+The first variable is the [EIN](https://en.wikipedia.org/wiki/Employer_Identification_Number) of the organization. As you can see, R doesn't know that this is an ID, and it treating it as a number, giving us the range of values. This is not a problem since we won't be using the EIN today. If we wanted to use it, we would need to [classify the variable](https://www.dartistics.com/classes.html) for R. 
+
+The "NAME" variable shows its class: "character". R recognizes that this variable is a text, or character, variable. The "Length" shows how many rows have text in the "NAME" column: 7856. 
+```{r summarize data}
+summary(fulldata)
+```
+To make things simpler for ourselves, let's remove all of the variables we won't be using today. Since we are only using a few, it's easier to select the ones to include, rather than listing all the ones to exclude. 
+
+Use the `select` function (from the `tidyverse` package) to choose which columns to include.
+```{r}
+smalldata <- select(fulldata, NAME, CITY, INCOME_AMT, ASSET_AMT, NTEE_CD)
+
+```
+
+Now let's summarize our data again. 
+
+```{r summarize smaller data}
+summary(smalldata)
+```
+As you can see, we now have three variables that are "character": NAME (name of organization), CITY (location of organization), and NTEE_CD (type of organization, [full list of NTEE codes](https://urbaninstitute.github.io/nccs-legacy/ntee/ntee.html)). They all have the same Length, which means that they have the same number of rows filled in. 
+
+Our other two variables are numeric: INCOME_AMT (total income for the year) and ASSET_AMT (total asset value for the year). You can see that `summary` gives you the minimum and maximum values for these numeric variables, as well as the 1st quartile, the mean, the median, and the 3rd quartile.
+
+Notice that both INCOME_AMT and ASSET_AMT have a significant number of "NA"s, in this case meaning "no data". Let's limit our dataset to only those rows that have data for all of our variables. 
+
+```{r remove na}
+completedata <- smalldata[complete.cases(smalldata), ]
+```
+
+Notice that the number of rows in "data" has dropped to 6134. If we use `summary` again, we can see that there are no NAs for our numeric variables.
+
+```{r summarize complete data}
+summary(completedata)
+```
+Notice that INCOME_AMT ranges from -23,778 to 4,804,071,780. Which organizations are at these extremes? Let's make a dynamic table that will help us explore the data.
+```{r reactable data, echo=TRUE}
+reactable(
+completedata,
+searchable = TRUE,
+showPageSizeOptions = TRUE,
+striped = TRUE,
+highlight = TRUE,
+columns = list(
+NAME = colDef(name = "Name", filterable = TRUE),
+CITY = colDef(name = "City", filterable = TRUE),
+INCOME_AMT = colDef(name = "Income"),
+ASSET_AMT = colDef(name = "Assets"),
+NTEE_CD = colDef(name = "NCEE Code", filterable = TRUE)
+)
+)
+```
+Using this table, can you find the nonprofit you work for? What is its NTEE code? How many other organizations in Hawaiʻi have the same NTEE code?
+
+Which organization has the highest 2017 income? Which has the least? How many nonprofits showed negative income in 2017?
+
+Let's take a closer look at the distribution of our two numeric variables, starting with INCOME_AMT. Since there is such a huge range, let's focus on one group of NTEE codes. As an example, let's create a subset of animal-related organizations whose NTEE code starts with "D". 
+
+```{r subset P}
+NTEEdata <- completedata %>%
+  filter(str_detect(NTEE_CD, "^D"))
+
+```
+Notice that if you look at the NTEEdata, all of the NTEE_CD codes start with "D". 
+
+Now let's look at the income distribution of "D" organizations. 
+
+```{r income histogram}
+income_hist <- NTEEdata %>%
+  ggplot(aes(x=INCOME_AMT)) +
+    geom_histogram(fill="blue")+
+    labs(x="2017 Income", y="Count",
+    title="Income of D Organizations with Positive Assets")+
+    scale_x_continuous(labels = dollar)+
+    theme_minimal()
+ggplotly(income_hist)
+```
+
+```{r income histogram facet}
+income_hist <- NTEEdata %>%
+  ggplot(aes(x=INCOME_AMT)) +
+    geom_histogram(fill="blue")+
+    facet_wrap(~NTEE_CD)+
+    labs(x="2017 Income", y="Count",
+    title="Income of D Organizations with Positive Assets")+
+    scale_x_continuous(labels = dollar)+
+    theme_minimal()
+ggplotly(income_hist)
+```
+
+```{r income assets scatterplot}
+income_hist <- NTEEdata %>%
+  ggplot(aes(x=ASSET_AMT, y=INCOME_AMT, color=CITY)) +
+    geom_point()+
+    labs(x="Assets", y="Income",
+    title="Assets and Income of D Organizations by City")+
+    scale_x_continuous(labels = dollar)+
+    scale_y_continuous(labels = dollar)+
+    theme_minimal()
+ggplotly(income_hist)
+```
+
+Now it's your turn to alter the code! Starting at line 104, replace "D" with a different NTEE code letter. For example, use the letter that starts the NTEE code for your organization, which you can find in the dynamic table you made. 

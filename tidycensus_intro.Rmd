@@ -5,12 +5,11 @@ date: "1/24/2024"
 output: html_document
 ---
 
-
 Hello and welcome to our Introduction to R for Non-Profits Workshop :)
 
-*Goals* of this R Markdown (Rmd) 
-    
-    1. Import data using an R package connected to an API (Applicatoin Programming Interface)
+*Goals* of this R Markdown (Rmd)
+
+    1. Import data using an R package connected to an API (Application Programming Interface)
       - In other words, we don't have to:
        - manually go to a website 
        - hit download
@@ -28,43 +27,49 @@ Hello and welcome to our Introduction to R for Non-Profits Workshop :)
       - Scatter plot with high school diploma attainment
       
 
-
 ## Load in Packages
 
 It may be helpful to think of packages as toolboxes which contain functions, the tools
 
-In order to utilize a package and it's functions we need to do 2 things: 
-    
-    1. Install the package in the console: type install.packages("name of package you want to install")
+In order to utilize a package and it's functions we need to do 2 things:
+
+    1. Install the package (usally done in the console: type install.packages("name of package you want to install"), but today I have included that code in this R Markdown)
         - You only have to do this once
     2. Load the package into your current R Session
         - Do this in the first code chunk in the R Markdown by typing library(name of package you want to load into you R session)
         - Do this in every R Markdown that utilizes those packages
 
-If you ever receive the error message: "package name" does not exist, the fix is simple:
-        - Go to the console in R Studio and type install.packages("name of package you want to install")
-        
-In more recent versions of R Studio, you may see a yellow ribbon at the top of the notebook that recognizes packages in the notebook that you do not have installed. It will prompt you with an option to click and install them 
+If you ever receive the error message: "package name" does not exist, the fix is simple: - Go to the console in R Studio and type install.packages("name of package you want to install")
 
-```{r setup, message=FALSE}
-library(tidycensus)  # star of the show, what we will use to import data
-# install.packages("tidycensus")
-library(tidyverse) # most popular R Package for manipulating data
-# install.packages("tidyverse")
-library(reactable) # makes fun, nice looking, interactive tables
-# install.packages("reactable")
-library(ggiraph) # makes static maps interactive
-# install.packages("ggiraph")
-library(ggpubr) # does some statistics and prints the results on our graphs
-# install.packages("ggpubr")
-options(progress_enabled=FALSE) # picky but i didn't want the progress bar appearing in pdf
+In more recent versions of R Studio, you may see a yellow ribbon at the top of the notebook that recognizes packages in the notebook that you do not have installed. It will prompt you with an option to click and install them
+
+```{r setup, eval=FALSE}
+install.packages("tidycensus")
+#install.packages("tidyverse")
+#install.packages("reactable")
+install.packages("ggiraph")
+install.packages("ggpubr")
 ```
 
 
 
+```{r, message=FALSE}
+library(tidycensus)  # star of the show, what we will use to import data
+
+library(tidyverse) # most popular R Package for manipulating data
+
+library(reactable) # makes fun, nice looking, interactive tables
+
+library(ggiraph) # makes static graphs and maps interactive
+
+library(ggpubr) # does some statistics and prints the results on our graphs
+
+options(progress_enabled=FALSE) # picky but i didn't want the progress bar appearing in pdf
+```
+
 ## Define API Key
-[Request Here](https://api.census.gov/data/key_signup.html)
-Place the API Key emailed to you in the code below replacing 06f9dcf5172cd1b403f9a6c34beea0d7929604f3 with your own
+
+[Request Here](https://api.census.gov/data/key_signup.html) Place the API Key emailed to you in the code below replacing 06f9dcf5172cd1b403f9a6c34beea0d7929604f3 with your own
 
 ```{r Define API Key, message=FALSE}
 census_api_key("06f9dcf5172cd1b403f9a6c34beea0d7929604f3")
@@ -72,22 +77,17 @@ census_api_key("06f9dcf5172cd1b403f9a6c34beea0d7929604f3")
 
 Now that we have access to census data, *what variables can we explore?*
 
-
 This code chunk below shows us all the variables from the American Community Survey (ACS) 1 Year Survey Data Profiles for 2022
 
 Data Profiles have the most frequently requested social, economic, housing, and demographic data. Each of these four subject areas is a separate data profile. The Data Profiles summarize the data for a single geographic area, both numbers and percent, to cover the most basic data on all topics.
 
 Here is an [amazing guide to navigating census data and using tidycensus](https://walker-data.com/census-r/index.html)
 
-
 ```{r Import ACS Data}
 acs_2022_variables <- load_variables(2022, "acs1/profile")
 ```
 
-
-The dataframe we just created (acs_2022_variables) has all the info we need, but is pretty bland
-Let's create a table that is prettier and easier to navigate 
-- works best when knitted
+The dataframe we just created (acs_2022_variables) has all the info we need, but is pretty bland Let's create a table that is prettier and easier to navigate - works best when knitted
 
 ```{r Reactable}
 reactable(acs_2022_variables, filterable = TRUE, showPageSizeOptions = TRUE, minRows = 10)
@@ -97,7 +97,7 @@ reactable(acs_2022_variables, filterable = TRUE, showPageSizeOptions = TRUE, min
 
 Let's investigate family poverty on Oahu at the census tract level
 
-DP03_0119P is the code for Percent!!PERCENTAGE OF FAMILIES AND PEOPLE WHOSE INCOME IN THE PAST 12 MONTHS IS BELOW THE POVERTY LEVEL!!All families    
+DP03_0119P is the code for Percent!!PERCENTAGE OF FAMILIES AND PEOPLE WHOSE INCOME IN THE PAST 12 MONTHS IS BELOW THE POVERTY LEVEL!!All families
 
 ```{r, message=FALSE, warning=FALSE, results='hide'}
 oahu_family_poverty <- get_acs(
@@ -112,12 +112,11 @@ oahu_family_poverty <- get_acs(
   dplyr::filter(GEOID != "15003981200" & GEOID !="15003981900") # Tract in Northwestern Hawaiian Islands that makes map very small and Mamala Bay Golf Course that has %100 percent of families living below the poverty line
 ```
 
-Congragulations! You have successfully imported census data into R
+Congratulations! You have successfully imported census data into R
 
 Now, let's map the data
 
 ## Mapping
-
 
 ```{r}
 
@@ -141,8 +140,6 @@ girafe(ggobj = family_poverty_map, width = 700, height = 400)
 
 Here is a [list of the Tract Names with reference numbers](https://files.hawaii.gov/dbedt/census/census_2020/data/2020-tract-names.pdf)
 
-
-
 Now let's look at family poverty in Honolulu County over time
 
 ## Time Series
@@ -163,13 +160,11 @@ family_poverty_2009_2019 <- map_dfr(years, ~{
 }, .id = "year")
 ```
 
-
 ```{r, warning=FALSE}
 ggplot(family_poverty_2009_2019, aes(x = year, y = estimate, group = 1)) + 
   geom_line() + 
   geom_point()
 ```
-
 
 This graph is okay, but we can do alot to make it more informative and nicer too look at
 
@@ -187,6 +182,7 @@ ggplot(family_poverty_2009_2019, aes(x = year, y = estimate, group = 1)) +
        y = "%",
        caption = "Shaded area represents margin of error around the estimate")
 ```
+
 ## Scatter Plot
 
 Let's explore the relationship between poverty and education with a scatter plot
@@ -207,7 +203,6 @@ oahu_family_poverty_college_education <- get_acs(
 
 ```
 
-
 ```{r, warning=FALSE, message=FALSE}
 ggplot(oahu_family_poverty_college_education, aes(x = percent_of_families_with_income_below_poverty_lineE,
                                              y = percent_of_indivivuals_with_bachelors_degree_or_higherE)) +
@@ -221,7 +216,7 @@ ggplot(oahu_family_poverty_college_education, aes(x = percent_of_families_with_i
 This is pretty interesting
 
 With each point being a census tract, our graph hints that there is some relationship between poverty and education at the tract level
-        
+
         - The number with the "R =" up top tells us that the correlation coefficient is -0.38
           - This is on a scale from -1 to 1
           - Negative correlations describe relationships where one variable increases, the other decreases (and vice versa)
@@ -236,13 +231,10 @@ This may cause you to think!!
         - What variables included in the American Community Survey are the most correlated with family poverty?
         - We can explore this with correlation matricies and machine learning tools that we can discuss in the future
 
-
-
 ## Challenge
 
+Can you replace family poverty with another variable and
 
-Can you replace family poverty with another variable and 
-
-  1. Map it
-  2. Show the variable over time
-  3. Show the variables relationship with education
+1.  Map it
+2.  Show the variable over time
+3.  Show the variables relationship with education
